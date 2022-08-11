@@ -5,50 +5,85 @@ const token = process.env.TOKEN
 
 const detrisMetadata = [
   // DEMO ASSETS
-  { type: ["solid", "detris"], quantity: 4 },
-  // { type: ["border", "detris"], quantity: 3 },
-  // { type: ["border", "pieces"], quantity: 2 },
-  // { type: ["neon", "detris"], quantity: 2 },
-  // { type: ["single", "detris"], quantity: 1 },
-  // { type: ["inverted", "detris"], quantity: 1 },
+  { type: ["solid", "detris"], quantity: 1 },
+  { type: ["solid", "finiam"], quantity: 1 },
+  { type: ["solid", "special"], quantity: 1 },
+  { type: ["border", "detris"], quantity: 1 },
+  { type: ["border", "finiam"], quantity: 1 },
+  { type: ["border", "special"], quantity: 1 },
+  { type: ["border pieces", "detris"], quantity: 1 },
+  { type: ["border pieces", "finiam"], quantity: 1 },
+  { type: ["border pieces", "special"], quantity: 1 },
+  { type: ["neon", "detris"], quantity: 1 },
+  { type: ["neon", "finiam"], quantity: 1 },
+  { type: ["neon", "special"], quantity: 1 },
+  { type: ["single", "white"], quantity: 1 },
+  { type: ["single", "inverted"], quantity: 1 },
 
-  // ASSETS TO DEPLOY FOR A 99 COLLECTION
-  // { type: ["solid", "detris"], quantity: 42 },
-  // { type: ["solid", "palette76"], quantity: 9 },
-  // { type: ["solid", "palette7998"], quantity: 2 },
-  // { type: ["border", "detris"], quantity: 19 },
-  // { type: ["border", "palette76"], quantity: 4 },
-  // { type: ["border", "palette7998"], quantity: 1 },
+  // ASSETS TO DEPLOY FOR A 101 COLLECTION
+  // { type: ["solid", "detris"], quantity: 43 },
+  // { type: ["solid", "finiam"], quantity: 9 },
+  // { type: ["solid", "special"], quantity: 2 },
+  // { type: ["border", "detris"], quantity: 20 },
+  // { type: ["border", "finiam"], quantity: 4 },
+  // { type: ["border", "special"], quantity: 1 },
   // { type: ["border pieces", "detris"], quantity: 9 },
-  // { type: ["border pieces", "palette76"], quantity: 2 },
-  // { type: ["border pieces", "palette7998"], quantity: 1 },
+  // { type: ["border pieces", "finiam"], quantity: 2 },
+  // { type: ["border pieces", "special"], quantity: 1 },
   // { type: ["neon", "detris"], quantity: 3 },
-  // { type: ["neon", "palette76"], quantity: 2 },
-  // { type: ["neon", "palette7998"], quantity: 1 },
+  // { type: ["neon", "finiam"], quantity: 2 },
+  // { type: ["neon", "special"], quantity: 1 },
   // { type: ["single", "white"], quantity: 3 },
-  // { type: ["inverted", "black"], quantity: 1 },
+  // { type: ["single", "inverted"], quantity: 1 },
 ]
+
+const themesBitmap = {
+  "solid": {
+    "detris": 0,
+    "finiam": 1,
+    "special": 2
+  },
+  "border": {
+    "detris": 3,
+    "finiam": 4,
+    "special": 5
+  },
+  "border pieces": {
+    "detris": 6,
+    "finiam": 7,
+    "special": 8
+  },
+  "neon": {
+    "detris": 9,
+    "finiam": 10,
+    "special": 11
+  },
+  "single": {
+    "white": 12,
+    "inverted": 13
+  }
+}
 
 async function main() {
   const path = process.argv.slice(2)
-  let assetId = 0;
+  let assetId = 1;
   let metadataList = [];
 
   async function uploadFiles(type, color) {
     const innerPath = `${path}/${type}/${color}`;
-    const uniqueFile = new File([`/${type}/${color}; asset id: ${assetId}; v2`], "detris/game-type.txt", {type: "text/plain"})
+    const uniqueFile = new File([`/${type}/${color}; asset id: ${assetId}; v2`], `${color}/game-type.txt`, {type: "text/plain"})
     const files = await getFilesFromPath(innerPath)
     const storage = new NFTStorage({ token })
 
     console.log(`storing ${files.length} file(s) from ${innerPath}`)
     const cid = await storage.storeDirectory([...files, uniqueFile], {
-        pathPrefix: "detris/",
+        pathPrefix: `${color}/`,
     })
     const metadata = {
-      image: `https://ipfs.io/ipfs/${cid}/detris/preview.png`,
+      image: `https://ipfs.io/ipfs/${cid}/${color}/preview.png`,
       name: `Detris #${assetId}`,
       description: "Detris! A playable nft. Play anywhere, everywhere.",
-      animation_url: `https://ipfs.io/ipfs/${cid}/detris`,
+      animation_url: `https://ipfs.io/ipfs/${cid}/${color}`,
       attributes: [
         {
           trait_type: "Detris Type",
@@ -98,9 +133,17 @@ async function main() {
     return detrisMetadataArray
   }
 
-  const typesArray = buildDetrisMetadataArray();
+  const typesArray = shuffle(buildDetrisMetadataArray());
 
-  shuffle(typesArray).map(type => uploadFiles(type[0], type[1]))
+  for(let i = 0; i < typesArray.length; i++) {
+    const type = typesArray[i];
+    await uploadFiles(type[0], type[1])
+  }
+
+  const arrayBitmap = typesArray.map(type => themesBitmap[type[0]][type[1]])
+
+  console.log("Array bitmap of themes order by Asset ID")
+  console.log(arrayBitmap)
 
   const storage = new NFTStorage({ token })
   const cid = await storage.storeDirectory(metadataList, {})
